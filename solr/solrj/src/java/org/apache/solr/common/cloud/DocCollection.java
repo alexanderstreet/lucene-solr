@@ -53,10 +53,12 @@ public class DocCollection extends ZkNodeProps implements Iterable<Slice> {
   public static final String STATE_FORMAT = "stateFormat";
   public static final String RULE = "rule";
   public static final String SNITCH = "snitch";
+  public static final String EXT_STATE = "externalState";
 
   private final int znodeVersion;
 
   private final String name;
+  private final Boolean externalState;
   private final Map<String, Slice> slices;
   private final Map<String, Slice> activeSlices;
   private final Slice[] activeSlicesArr;
@@ -98,6 +100,7 @@ public class DocCollection extends ZkNodeProps implements Iterable<Slice> {
     this.numTlogReplicas = (Integer) verifyProp(props, TLOG_REPLICAS, 0);
     this.numPullReplicas = (Integer) verifyProp(props, PULL_REPLICAS, 0);
     this.maxShardsPerNode = (Integer) verifyProp(props, MAX_SHARDS_PER_NODE);
+    this.externalState = (Boolean) verifyProp(props, EXT_STATE);
     Boolean autoAddReplicas = (Boolean) verifyProp(props, AUTO_ADD_REPLICAS);
     this.policy = (String) props.get(Policy.POLICY);
     this.autoAddReplicas = autoAddReplicas == null ? Boolean.FALSE : autoAddReplicas;
@@ -156,6 +159,7 @@ public class DocCollection extends ZkNodeProps implements Iterable<Slice> {
       case TLOG_REPLICAS:
         return Integer.parseInt(o.toString());
       case AUTO_ADD_REPLICAS:
+      case EXT_STATE:
       case READ_ONLY:
         return Boolean.parseBoolean(o.toString());
       case "snitch":
@@ -430,4 +434,10 @@ public class DocCollection extends ZkNodeProps implements Iterable<Slice> {
     return result == null ? def : result;
 
   }
+
+  public boolean getExternalState() {
+    return externalState != null &&
+        externalState == Boolean.TRUE;
+  }
+
 }

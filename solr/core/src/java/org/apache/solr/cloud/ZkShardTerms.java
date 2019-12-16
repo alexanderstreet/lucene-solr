@@ -148,7 +148,7 @@ public class ZkShardTerms implements AutoCloseable{
   // package private for testing, only used by tests
   Map<String, Long> getTerms() {
     synchronized (writingLock) {
-      return terms.getTerms();
+      return terms.getData();
     }
   }
 

@@ -111,6 +111,7 @@ public class CreateCollectionCmd implements OverseerCollectionMessageHandler.Cmd
     final String collectionName = message.getStr(NAME);
     final boolean waitForFinalState = message.getBool(WAIT_FOR_FINAL_STATE, false);
     final String alias = message.getStr(ALIAS, collectionName);
+    final String externalState = message.getStr(DocCollection.EXT_STATE);
     log.info("Create collection {}", collectionName);
     if (clusterState.hasCollection(collectionName)) {
       throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, "collection already exists: " + collectionName);
@@ -259,6 +260,7 @@ public class CreateCollectionCmd implements OverseerCollectionMessageHandler.Cmd
         params.set(ZkStateReader.NUM_SHARDS_PROP, shardNames.size());
         params.set(CoreAdminParams.NEW_COLLECTION, "true");
         params.set(CoreAdminParams.REPLICA_TYPE, replicaPosition.type.name());
+        if(externalState != null) params.set(DocCollection.EXT_STATE, externalState);
 
         if (async != null) {
           String coreAdminAsyncId = async + Math.abs(System.nanoTime());

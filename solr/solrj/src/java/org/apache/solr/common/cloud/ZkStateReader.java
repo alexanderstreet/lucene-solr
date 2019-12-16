@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
@@ -48,6 +49,8 @@ import java.util.stream.Collectors;
 
 import org.apache.solr.client.solrj.cloud.DirectShardState;
 import org.apache.solr.client.solrj.cloud.ShardStateProvider;
+import org.apache.solr.client.solrj.cloud.ShardTerms;
+import org.apache.solr.client.solrj.cloud.ShardTermsStateProvider;
 import org.apache.solr.client.solrj.cloud.autoscaling.AutoScalingConfig;
 import org.apache.solr.common.AlreadyClosedException;
 import org.apache.solr.common.Callable;
@@ -218,6 +221,7 @@ public class ZkStateReader implements SolrCloseable {
   private Set<LiveNodesListener> liveNodesListeners = ConcurrentHashMap.newKeySet();
 
   private Set<ClusterPropertiesListener> clusterPropertiesListeners = ConcurrentHashMap.newKeySet();
+  private final ShardTermsStateProvider shardTermsStateProvider ;
 
   private final ShardStateProvider directReplicaState = new DirectShardState(s -> liveNodes.contains(s)) {
     @Override
@@ -356,15 +360,17 @@ public class ZkStateReader implements SolrCloseable {
   private Set<CountDownLatch> waitLatches = ConcurrentHashMap.newKeySet();
 
   public ZkStateReader(SolrZkClient zkClient) {
-    this(zkClient, null);
+    this(zkClient, null, null);
   }
 
-  public ZkStateReader(SolrZkClient zkClient, Runnable securityNodeListener) {
+  public ZkStateReader(SolrZkClient zkClient, Runnable securityNodeListener, BiFunction<String,String , ShardTerms> termsDataProvider) {
     this.zkClient = zkClient;
     this.configManager = new ZkConfigManager(zkClient);
     this.closeClient = false;
     this.securityNodeListener = securityNodeListener;
     assert ObjectReleaseTracker.track(this);
+    if(termsDataProvider == null) termsDataProvider = (s, s2) -> null;
+    this.shardTermsStateProvider = new ShardTermsStateProvider(this, termsDataProvider);
   }
 
 
@@ -390,6 +396,7 @@ public class ZkStateReader implements SolrCloseable {
     this.configManager = new ZkConfigManager(zkClient);
     this.closeClient = true;
     this.securityNodeListener = null;
+    this.shardTermsStateProvider = new ShardTermsStateProvider(this, (s, s2) -> null);
 
     assert ObjectReleaseTracker.track(this);
   }
@@ -2353,6 +2360,17 @@ public class ZkStateReader implements SolrCloseable {
   }
   public Set<String> getCollections(){
     return clusterState.getCollectionStates().keySet();
+  }
+
+
+  public ShardStateProvider getReplicaStateProvider(String collection) {
+    DocCollection coll = getClusterState().getCollection(collection);
+    return coll.getExternalState()?
+      shardTermsStateProvider:
+        directReplicaState;
+
+
+
   }
   public ShardStateProvider getShardStateProvider(String coll){
     return directReplicaState;

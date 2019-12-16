@@ -54,6 +54,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.google.common.base.Strings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.solr.client.solrj.cloud.ShardStateProvider;
+import org.apache.solr.client.solrj.cloud.ShardTerms;
 import org.apache.solr.client.solrj.cloud.SolrCloudManager;
 import org.apache.solr.client.solrj.cloud.autoscaling.TriggerEventType;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
@@ -448,7 +449,7 @@ public class ZkController implements Closeable {
 
     zkStateReader = new ZkStateReader(zkClient, () -> {
       if (cc != null) cc.securityNodeChanged();
-    });
+    }, (coll, slice) -> getTermsData(coll, slice));
 
     init(registerOnReconnect);
 
@@ -459,6 +460,13 @@ public class ZkController implements Closeable {
         getNodeName(), zkStateReader);
 
     assert ObjectReleaseTracker.track(this);
+  }
+
+  private ShardTerms getTermsData(String coll, String shard) {
+    ZkCollectionTerms collTerms = collectionToTerms.get(coll);
+    if (collTerms == null) return null;
+    ZkShardTerms x = collTerms.getShard(shard);
+    return x == null ? null : x.getShardTerms();
   }
 
   public int getLeaderVoteWait() {
