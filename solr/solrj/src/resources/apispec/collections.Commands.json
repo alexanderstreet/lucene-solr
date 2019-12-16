@@ -126,6 +126,7 @@
         "type": "boolean",
         "description": "If true, the state of the replicas will not be stored in state.json",
         "default": false
+      }
       },
       "required": [
         "name"
