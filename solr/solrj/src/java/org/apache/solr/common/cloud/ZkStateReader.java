@@ -2372,7 +2372,10 @@ public class ZkStateReader implements SolrCloseable {
 
 
   }
-  public ShardStateProvider getShardStateProvider(String coll){
-    return directReplicaState;
+  public ShardStateProvider getShardStateProvider(String collection){
+    DocCollection coll = getClusterState().getCollection(collection);
+    return coll.getExternalState()?
+        shardTermsStateProvider:
+        directReplicaState;
   }
 }
