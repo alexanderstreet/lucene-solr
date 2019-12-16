@@ -1762,6 +1762,20 @@ public class ZkStateReader implements SolrCloseable {
   public void waitForState(final String collection, long wait, TimeUnit unit, CollectionStatePredicate predicate)
       throws InterruptedException, TimeoutException {
 
+    ShardStateProvider ssp = getShardStateProvider(collection);
+    if (ssp instanceof DirectShardState) {
+      waitForLegacyState(collection, wait, unit, predicate);
+    } else {
+      for (; ; ) {
+        if (predicate.matches(liveNodes, getCollection(collection), ssp)) return;
+        Thread.sleep(50);
+      }
+    }
+  }
+
+
+
+  private void waitForLegacyState(String collection, long wait, TimeUnit unit, CollectionStatePredicate predicate) throws InterruptedException, TimeoutException {
     if (closed) {
       throw new AlreadyClosedException();
     }
@@ -2363,15 +2377,6 @@ public class ZkStateReader implements SolrCloseable {
   }
 
 
-  public ShardStateProvider getReplicaStateProvider(String collection) {
-    DocCollection coll = getClusterState().getCollection(collection);
-    return coll.getExternalState()?
-      shardTermsStateProvider:
-        directReplicaState;
-
-
-
-  }
   public ShardStateProvider getShardStateProvider(String collection){
     DocCollection coll = getClusterState().getCollection(collection);
     return coll.getExternalState()?
