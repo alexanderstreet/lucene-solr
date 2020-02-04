@@ -62,8 +62,10 @@ public class CloudMLTQParser extends QParser {
 
   public Query parse() {
     String id = localParams.get(QueryParsing.V);
+    String route = (localParams.get("route") == null) ? null : localParams.get("route");
+
     // Do a Real Time Get for the document
-    SolrDocument doc = getDocument(id);
+    SolrDocument doc = getDocument(id, route);
     if(doc == null) {
       throw new SolrException(
           SolrException.ErrorCode.BAD_REQUEST, "Error completing MLT request. Could not fetch " +
@@ -178,11 +180,14 @@ public class CloudMLTQParser extends QParser {
 
   }
 
-  private SolrDocument getDocument(String id) {
+  private SolrDocument getDocument(String id, String route) {
     SolrCore core = req.getCore();
     SolrQueryResponse rsp = new SolrQueryResponse();
     ModifiableSolrParams params = new ModifiableSolrParams();
     params.add(ID, id);
+    if (route != null) {
+      params.add("route", route);
+    }
 
     SolrQueryRequestBase request = new SolrQueryRequestBase(core, params) {
     };
